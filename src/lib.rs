@@ -1,77 +1,118 @@
-#[derive(Clone, Debug, PartialEq)]
-/// The reason the backend rejected the transaction we tried to broadcast.
-pub enum BroadcastTxError {
-    /// The transaction failed to verify (e.g. it had an invalid signature)
-    // #[error("the transaction was rejected by network rules ({0})")]
-    VerifyRejected(String),
-    /// The transaction was generally invalid (e.g. one of the inputs it is spending from doesn't exist)
-    // #[error("there was a general error while verifying the transaction ({0})")]
-    VerifyError(String),
-    /// That transaction has already been confirmed.
-    // #[error("the transaction has already been broadcast")]
-    AlreadyInChain,
-    /// The wallet contained an input from a coinbase transaction that wasn't matured yet.
-    // #[error("premature spend of coinbase output")]
-    PrematureSpendOfCoinbase,
-    /// The transaction conflicts with one that is already in the mempool (and that one is not
-    /// replaceable).
-    // #[error("the transaction conflicts with one that is already in the mempool")]
-    ConflictsWithMempool,
-    /// The transaction has an input that is missing or spent.
-    // #[error("the transaction has an input that is missing or spent")]
-    MissingOrSpent,
-    /// At least one of the inputs had a witness  or script pubkey that did not satisfy the script pubkey
-    // #[error("the witness or scriptsig was invalid for one of the inputs (#{0})")]
-    ScriptPubkeyNotSatisfied(String),
-}
+mod util;
+mod general_errors;
 
-impl BroadcastTxError {
-    /// parses a bitcoin core rpc `sendrawtransaction` call error response.
-    pub fn from_core_rpc_response(text: &str) -> Option<Self> {
-        text.strip_prefix("sendrawtransaction RPC error: ")
-            .and_then(|text| match serde_json::from_str::<RpcError>(&text) {
-                Ok(rpc_error) => Some(match rpc_error.code {
-                    -25 => {
-                        if rpc_error
-                            .message
-                            .starts_with("bad-txns-inputs-missingorspent")
-                        {
-                            BroadcastTxError::MissingOrSpent
-                        } else {
-                            BroadcastTxError::VerifyError(rpc_error.message)
-                        }
-                    }
-                    -26 => {
-                        if rpc_error
-                            .message
-                            .starts_with("bad-txns-premature-spend-of-coinbase")
-                        {
-                            BroadcastTxError::PrematureSpendOfCoinbase
-                        } else if rpc_error.message.starts_with("txn-mempool-conflict") {
-                            BroadcastTxError::ConflictsWithMempool
-                        } else if let Some(remaining) = rpc_error
-                            .message
-                            .strip_prefix("non-mandatory-script-verify-flag")
-                        {
-                            let remaining =
-                                remaining.trim_start_matches(" (").trim_end_matches(")");
-                            BroadcastTxError::ScriptPubkeyNotSatisfied(remaining.into())
-                        } else {
-                            BroadcastTxError::VerifyRejected(rpc_error.message)
-                        }
-                    }
-                    -27 => BroadcastTxError::AlreadyInChain,
-                    _ => return None,
-                }),
-                Err(_e) => None,
-            })
-    }
-}
+use crate::general_errors::{
+    VerifyError,
+    TypeError,
+};
+use std::str::FromStr;
 
 #[derive(serde::Deserialize, Debug)]
-struct RpcError {
+pub struct RpcError {
     code: i32,
     message: String,
+}
+
+// https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/protocol.h
+#[allow(non_camel_case_types)]
+pub enum RPCErrorCode {
+    // General application defined errors
+    RPC_MISC_ERROR,                // std::exception thrown in command handling
+    RPC_TYPE_ERROR(TypeError),     // Unexpected type was passed as parameter
+    RPC_INVALID_ADDRESS_OR_KEY,    // Invalid address or key
+    RPC_OUT_OF_MEMORY,             // Ran out of memory during operation - No sub erros needed
+    RPC_INVALID_PARAMETER,         // Invalid, missing or duplicate parameter
+    RPC_DATABASE_ERROR,            // Database error
+    RPC_DESERIALIZATION_ERROR,     // Error parsing or validating structure in raw format
+    RPC_VERIFY_ERROR(VerifyError), // General error during transaction or block submission
+    RPC_VERIFY_REJECTED,           // Transaction or block was rejected by network rules
+    RPC_VERIFY_ALREADY_IN_CHAIN,   // Transaction already in chain
+    RPC_IN_WARMUP,                 // Client still warming up
+    RPC_METHOD_DEPRECATED,         // RPC method is deprecated
+
+    // P2P client errors
+    RPC_CLIENT_NOT_CONNECTED,         // Bitcoin is not connected
+    RPC_CLIENT_IN_INITIAL_DOWNLOAD,   // Still downloading initial blocks
+    RPC_CLIENT_NODE_ALREADY_ADDED,    // Node is already added
+    RPC_CLIENT_NODE_NOT_ADDED,        // Node has not been added before
+    RPC_CLIENT_NODE_NOT_CONNECTED,    // Node to disconnect not found in connected nodes
+    RPC_CLIENT_INVALID_IP_OR_SUBNET,  // Invalid IP/Subnet
+    RPC_CLIENT_P2P_DISABLED,          // No valid connection manager instance found
+    RPC_CLIENT_NODE_CAPACITY_REACHED, // Max number of outbound or block-relay connections already open
+
+    // Chain errors
+    RPC_CLIENT_MEMPOOL_DISABLED, // No mempool instance found
+
+    // Wallet errors
+    RPC_WALLET_ERROR,                // Unspecified problem with wallet (key not found etc.)
+    RPC_WALLET_INSUFFICIENT_FUNDS,   // Not enough funds in wallet or account
+    RPC_WALLET_INVALID_LABEL_NAME,   // Invalid label name
+    RPC_WALLET_KEYPOOL_RAN_OUT,      // Keypool ran out, call keypoolrefill first
+    RPC_WALLET_UNLOCK_NEEDED,        // Enter the wallet passphrase with walletpassphrase first
+    RPC_WALLET_PASSPHRASE_INCORRECT, // The wallet passphrase entered was incorrect
+    RPC_WALLET_WRONG_ENC_STATE,      // Command given in wrong wallet encryption state (encrypting an encrypted wallet etc.)
+    RPC_WALLET_ENCRYPTION_FAILED,    // Failed to encrypt the wallet
+    RPC_WALLET_ALREADY_UNLOCKED,     // Wallet is already unlocked
+    RPC_WALLET_NOT_FOUND,            // Invalid wallet specified
+    RPC_WALLET_NOT_SPECIFIED,        // No wallet specified (error when there are multiple wallets loaded)
+    RPC_WALLET_ALREADY_LOADED,       // This same wallet is already loaded
+    RPC_WALLET_ALREADY_EXISTS,       // There is already a wallet with the same name
+
+    // Unknown Error
+    RPC_UNKOWN_ERROR(RpcError),
+}
+
+impl From<RpcError> for RPCErrorCode {
+    fn from(error: RpcError) -> Self {
+        match error {
+            // General application defined errors
+            RpcError { 
+                code: -3,
+                message: m,
+            } => RPCErrorCode::RPC_TYPE_ERROR(TypeError::from_str(&m).unwrap()),
+            RpcError { code: -5, .. } => RPCErrorCode::RPC_INVALID_ADDRESS_OR_KEY,
+            RpcError { code: -7, .. } => RPCErrorCode::RPC_OUT_OF_MEMORY,
+            RpcError { code: -8, .. } => RPCErrorCode::RPC_INVALID_PARAMETER,
+            RpcError { code: -20, .. } => RPCErrorCode::RPC_DATABASE_ERROR,
+            RpcError { code: -22, .. } => RPCErrorCode::RPC_DESERIALIZATION_ERROR,
+            RpcError {
+                code: -25,
+                message: m,
+            } => RPCErrorCode::RPC_VERIFY_ERROR(VerifyError::from_str(&m).unwrap()),
+            RpcError { code: -26, .. } => RPCErrorCode::RPC_VERIFY_REJECTED,
+            RpcError { code: -27, .. } => RPCErrorCode::RPC_VERIFY_ALREADY_IN_CHAIN,
+            RpcError { code: -28, .. } => RPCErrorCode::RPC_IN_WARMUP,
+            RpcError { code: -32, .. } => RPCErrorCode::RPC_METHOD_DEPRECATED,
+
+            // P2P client errors
+            RpcError { code: -9, .. } => RPCErrorCode::RPC_CLIENT_NOT_CONNECTED,
+            RpcError { code: -10, .. } => RPCErrorCode::RPC_CLIENT_IN_INITIAL_DOWNLOAD,
+            RpcError { code: -23, .. } => RPCErrorCode::RPC_CLIENT_NODE_ALREADY_ADDED,
+            RpcError { code: -24, .. } => RPCErrorCode::RPC_CLIENT_NODE_NOT_ADDED,
+            RpcError { code: -29, .. } => RPCErrorCode::RPC_CLIENT_NODE_NOT_CONNECTED,
+            RpcError { code: -30, .. } => RPCErrorCode::RPC_CLIENT_INVALID_IP_OR_SUBNET,
+            RpcError { code: -31, .. } => RPCErrorCode::RPC_CLIENT_P2P_DISABLED,
+            RpcError { code: -34, .. } => RPCErrorCode::RPC_CLIENT_NODE_CAPACITY_REACHED,
+
+            // Wallet errors
+            RpcError { code: -4, .. } => RPCErrorCode::RPC_WALLET_ERROR,
+            RpcError { code: -6, .. } => RPCErrorCode::RPC_WALLET_INSUFFICIENT_FUNDS,
+            RpcError { code: -11, .. } => RPCErrorCode::RPC_WALLET_INVALID_LABEL_NAME,
+            RpcError { code: -12, .. } => RPCErrorCode::RPC_WALLET_KEYPOOL_RAN_OUT,
+            RpcError { code: -13, .. } => RPCErrorCode::RPC_WALLET_UNLOCK_NEEDED,
+            RpcError { code: -14, .. } => RPCErrorCode::RPC_WALLET_PASSPHRASE_INCORRECT,
+            RpcError { code: -15, .. } => RPCErrorCode::RPC_WALLET_WRONG_ENC_STATE,
+            RpcError { code: -16, .. } => RPCErrorCode::RPC_WALLET_ENCRYPTION_FAILED,
+            RpcError { code: -17, .. } => RPCErrorCode::RPC_WALLET_ALREADY_UNLOCKED,
+            RpcError { code: -18, .. } => RPCErrorCode::RPC_WALLET_NOT_FOUND,
+            RpcError { code: -19, .. } => RPCErrorCode::RPC_WALLET_NOT_SPECIFIED,
+            RpcError { code: -35, .. } => RPCErrorCode::RPC_WALLET_ALREADY_LOADED,
+            RpcError { code: -36, .. } => RPCErrorCode::RPC_WALLET_ALREADY_EXISTS,
+
+            // Unknown Error
+            _ => RPCErrorCode::RPC_UNKOWN_ERROR(error),
+        }
+    }
 }
 
 #[cfg(test)]
