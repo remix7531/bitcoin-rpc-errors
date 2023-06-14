@@ -1,20 +1,22 @@
 mod util;
 mod general_errors;
 
+use std::str::FromStr;
+
 use crate::general_errors::{
     VerifyError,
     TypeError,
 };
-use std::str::FromStr;
 
-#[derive(serde::Deserialize, Debug)]
+#[derive(serde::Deserialize, Debug, PartialEq)]
 pub struct RpcError {
     code: i32,
     message: String,
 }
 
-// https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/protocol.h
+// https://github.com/bitcoin/bitcoin/blob/master/src/rpc/protocol.h
 #[allow(non_camel_case_types)]
+#[derive(Debug, PartialEq)]
 pub enum RPCErrorCode {
     // General application defined errors
     RPC_MISC_ERROR,                // std::exception thrown in command handling
@@ -69,7 +71,7 @@ impl From<RpcError> for RPCErrorCode {
             RpcError { 
                 code: -3,
                 message: m,
-            } => RPCErrorCode::RPC_TYPE_ERROR(TypeError::from_str(&m).unwrap()),
+            } => RPCErrorCode::RPC_TYPE_ERROR(m.parse().unwrap()),
             RpcError { code: -5, .. } => RPCErrorCode::RPC_INVALID_ADDRESS_OR_KEY,
             RpcError { code: -7, .. } => RPCErrorCode::RPC_OUT_OF_MEMORY,
             RpcError { code: -8, .. } => RPCErrorCode::RPC_INVALID_PARAMETER,
@@ -78,7 +80,7 @@ impl From<RpcError> for RPCErrorCode {
             RpcError {
                 code: -25,
                 message: m,
-            } => RPCErrorCode::RPC_VERIFY_ERROR(VerifyError::from_str(&m).unwrap()),
+            } => RPCErrorCode::RPC_VERIFY_ERROR(m.parse().unwrap()),
             RpcError { code: -26, .. } => RPCErrorCode::RPC_VERIFY_REJECTED,
             RpcError { code: -27, .. } => RPCErrorCode::RPC_VERIFY_ALREADY_IN_CHAIN,
             RpcError { code: -28, .. } => RPCErrorCode::RPC_IN_WARMUP,
@@ -115,11 +117,41 @@ impl From<RpcError> for RPCErrorCode {
     }
 }
 
+#[derive(Debug)]
+pub enum ParseError {
+    JsonError(serde_json::Error),
+    StartOfJsonMissing,
+}
+
+impl FromStr for RPCErrorCode {
+    type Err = ParseError;
+    
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let json_str = match s.find('{') {
+            Some(i) => &s[i..],
+            None => return Err(ParseError::StartOfJsonMissing),
+        };
+        
+        match serde_json::from_str::<RpcError>(&json_str) {
+            Ok(error) => return Ok(error.into()),
+            Err(e) => return Err(ParseError::JsonError(e)),
+        };
+    }
+}
+
 #[cfg(test)]
 mod tests {
     #[test]
     fn it_works() {
         let result = 2 + 2;
         assert_eq!(result, 4);
+    }
+
+    #[test]
+    fn from_str() {
+        let error_str: String = r#"RPC_VERIFY_ERROR occured: {"code": -25, "message": "Input not found or already spent"}"#.to_string();
+        let error: crate::RPCErrorCode = error_str.parse().unwrap();
+        
+        assert_eq!(error, crate::RPCErrorCode::RPC_VERIFY_ERROR(crate::VerifyError::MissingOrSpend));
     }
 }
