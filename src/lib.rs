@@ -1,5 +1,6 @@
 mod util;
 mod general_errors;
+mod test;
 
 use std::str::FromStr;
 
@@ -141,12 +142,6 @@ impl FromStr for RPCErrorCode {
 
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
-    }
-
     #[test]
     fn from_str() {
         let error_str: String = r#"RPC_VERIFY_ERROR occured: {"code": -25, "message": "Input not found or already spent"}"#.to_string();
