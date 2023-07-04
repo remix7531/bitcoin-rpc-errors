@@ -34,7 +34,7 @@ pub enum TypeError {
     #[patterns("Amount out of range")]
     AmountOutOfRange,
 
-    // // https://github.com/bitcoin/bitcoin/blob/master/src/rpc/util.cpp#L589
+    // https://github.com/bitcoin/bitcoin/blob/master/src/rpc/util.cpp#L589
     #[patterns("Wrong type passed:\n(.*)")]
     WrongPassed(String),
 
@@ -42,11 +42,11 @@ pub enum TypeError {
     #[patterns("Missing data String key for proposal")]
     MissingKeyForProposal,
 
-    // // https://github.com/bitcoin/bitcoin/blob/master/src/wallet/rpc/backup.cpp#L1246
+    // https://github.com/bitcoin/bitcoin/blob/master/src/wallet/rpc/backup.cpp#L1246
     #[patterns("Expected number or \"now\" timestamp value for key. got type (.*)")]
     WrongTimestamp(String),
 
-    // // https://github.com/bitcoin/bitcoin/blob/master/src/wallet/rpc/backup.cpp#L1248
+    // https://github.com/bitcoin/bitcoin/blob/master/src/wallet/rpc/backup.cpp#L1248
     #[patterns("Missing required timestamp field for key")]
     MissingTimestamp,
 
@@ -75,6 +75,7 @@ pub enum VerifyError {
     // https://github.com/bitcoin/bitcoin/blob/master/src/rpc/rawtransaction.cpp#L697
     #[patterns("Input not found or already spent")]
     MissingOrSpend,
+    
     // No Pattern
     // https://github.com/bitcoin/bitcoin/blob/master/src/rpc/mining.cpp#L525
     // https://github.com/bitcoin/bitcoin/blob/master/src/rpc/mining.cpp#L1072
