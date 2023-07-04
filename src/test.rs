@@ -48,4 +48,15 @@ mod tests {
         let res3: Result<crate::test::Test, _> = "bla blu blub".parse();
         assert_eq!(Err(()), res3);
     }
+
+    #[test]
+    fn from_str() {
+        let error_str: String = r#"RPC_VERIFY_ERROR occured: {"code": -25, "message": "Input not found or already spent"}"#.to_string();
+        let error: crate::RPCErrorCode = error_str.parse().unwrap();
+
+        assert_eq!(
+            error,
+            crate::RPCErrorCode::RPC_VERIFY_ERROR(crate::VerifyError::MissingOrSpend)
+        );
+    }
 }
