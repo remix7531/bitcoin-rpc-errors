@@ -11,6 +11,7 @@ pub enum TypeError {
     // https://github.com/bitcoin/bitcoin/blob/master/src/rpc/signmessage.cpp#L51
     #[patterns("Malformed base64 encoding")]
     MalformedBase64,
+    
     // https://github.com/bitcoin/bitcoin/blob/master/src/rpc/util.cpp#L45
     #[patterns("JSON value of type (.*)")]
     WrongJsonType(String),
