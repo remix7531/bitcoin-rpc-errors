@@ -1,6 +1,7 @@
-use proc_macro2::TokenStream;
+use proc_macro2::{TokenStream, Ident};
 use regex::Regex;
 use syn::{Attribute, Data::Enum, Fields, Lit, Meta, NestedMeta, Variant};
+use quote::{quote};
 
 fn get_string_tokens_from_attribute(attribute: &Attribute) -> Vec<String> {
     let mut string_tokens = Vec::new();
@@ -43,10 +44,6 @@ fn get_string_tokens_with_name_from_variant(variant: &Variant, name: &str) -> Op
     }
 }
 
-fn get_name_from_variant(variant: &Variant) -> String {
-    variant.ident.to_string()
-}
-
 fn get_number_unnamed_fields_from_variant(variant: &Variant) -> Option<usize> {
     match &variant.fields {
         Fields::Named(_) => None,
@@ -67,6 +64,51 @@ fn regexs_same_num_captures(regexs: &[Regex]) -> Option<usize> {
     }
 }
 
+fn gen_variant_check(enum_name: &Ident, variant_name: &Ident, num_captures: usize, patterns: &[String]) 
+    -> Result<TokenStream, ()>
+{
+    let mut output = quote! {
+        if let Some(v) = vec![#( #patterns ),*]
+            .iter()
+            .find_map(|&pattern| regex::Regex::new(pattern).ok()?.captures(s))
+            .map(|captures| captures.iter().skip(1).map(|capture| capture.unwrap().as_str().to_string()).collect::<Vec<String>>())
+    }.to_string();
+    output += "{";
+        
+    output += &match num_captures {
+        0 => quote! {
+            if let [] = v.as_slice() {
+                return Ok(#enum_name::#variant_name);
+            }
+        }.to_string(),
+        1 => quote! {
+            if let [a] = v.as_slice() {
+                return Ok(#enum_name::#variant_name(a.to_string()));
+            }
+        }.to_string(),
+        2 => quote! {
+            if let [a, b] = v.as_slice() {
+                return Ok(#enum_name::#variant_name(a.to_string(), b.to_string()));
+            }
+        }.to_string(),
+        3 => quote! {
+            if let [a, b, c] = v.as_slice() {
+                return Ok(#enum_name::#variant_name(a.to_string(), b.to_string(), c.to_string()));
+            }
+        }.to_string(),
+        4 => quote! {
+            if let [a, b, c, d] = v.as_slice() {
+                return Ok(#enum_name::#variant_name(a.to_string(), b.to_string(), c.to_string(), d.to_string()));
+            }
+        }.to_string(),
+        _ => return Err(()),
+    };
+    output += "}";
+
+    Ok(output.parse::<TokenStream>().unwrap())
+}
+
+
 #[proc_macro_derive(ErrorEnum, attributes(patterns))]
 pub fn derive_from_str_from_patterns(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // Parse the input tokens
@@ -75,97 +117,17 @@ pub fn derive_from_str_from_patterns(input: proc_macro::TokenStream) -> proc_mac
     // Check if the input is an enum
     match input.data {
         Enum(e) => {
-            let enum_name = &input.ident;
-            let mut output: TokenStream = TokenStream::new();
-
-            output.extend(quote::quote! {
-                fn one_regex_captures(patterns: &Vec<&str>, input: &str) -> Option<Vec<String>> {
-                    let set = regex::RegexSet::new(patterns).unwrap();
-                    let matches: Vec<_> = set.matches(input).into_iter().collect();
-
-                    if matches.is_empty() {
-                        return None;
-                    }
-
-                    // Always use the first match. Do not care if multiple match
-                    let regex = regex::Regex::new(&patterns[matches[0]]).unwrap();
-
-                    let captures: Vec<String> = regex
-                    .captures(input)
-                    .unwrap()
-                    .iter()
-                    .skip(1)
-                    .map(|x| x.unwrap().as_str().to_string())
-                    .collect();
-
-                    Some(captures)
-                }
-            });
-
-            output.extend(quote::quote! {
-                macro_rules! gen_variant_check {
-                    ($enum_name:ident::$variant_name:ident, 0, $input:expr, $($patterns:expr),*) => {
-                        if let Some(v) = one_regex_captures(&vec![$($patterns),*], $input) {
-                            if let [] = v.as_slice() {
-                                return Ok($enum_name::$variant_name);
-                            }
-                        }
-                    };
-                    ($enum_name:ident::$variant_name:ident, 1, $input:expr, $($patterns:expr),*) => {
-                        if let Some(v) = one_regex_captures(&vec![$($patterns),*], $input) {
-                            if let [a] = v.as_slice() {
-                                return Ok($enum_name::$variant_name(a.to_string()));
-                            }
-                        }
-                    };
-                    ($enum_name:ident::$variant_name:ident, 2, $input:expr, $($patterns:expr),*) => {
-                        if let Some(v) = one_regex_captures(&vec![$($patterns),*], $input) {
-                            if let [a, b] = v.as_slice() {
-                                return Ok($enum_name::$variant_name(a.to_string(), b.to_string()));
-                            }
-                        }
-                    };
-                    ($enum_name:ident::$variant_name:ident, 3, $input:expr, $($patterns:expr),*) => {
-                        if let Some(v) = one_regex_captures(&vec![$($patterns),*], $input) {
-                            if let [a, b, c] = v.as_slice() {
-                                return Ok($enum_name::$variant_name(a.to_string(), b.to_string(), c.to_string()));
-                            }
-                        }
-                    };
-                    ($enum_name:ident::$variant_name:ident, 4, $input:expr, $($patterns:expr),*) => {
-                        if let Some(v) = one_regex_captures(&vec![$($patterns),*], $input) {
-                            if let [a, b, c, d] = v.as_slice() {
-                                return Ok($enum_name::$variant_name(a.to_string(), b.to_string(), c.to_string(), d.to_string()));
-                            }
-                        }
-                    };
-                }
-            });
-
-            let mut output_str: String = String::new();
-
-            output_str += &format!(
-                "
-                impl std::str::FromStr for {enum_name} {{
-                    type Err = ();
-
-                    fn from_str(s: &str) -> Result<Self, Self::Err> {{
+            let mut output: String = format!(
             "
-            );
+                impl std::str::FromStr for {} {{
+                    type Err = ();
+                    
+                    fn from_str(s: &str) -> Result<Self, Self::Err> {{
+            ", &input.ident);
 
             for v in &e.variants {
-                let variant_name = get_name_from_variant(v);
-
                 let patterns: Vec<String> = get_string_tokens_with_name_from_variant(v, "patterns")
-                    .unwrap_or_else(|| {
-                        panic!("No Attribute \"patterns\" found!");
-                    });
-                let patterns_joined: String = patterns
-                    .iter()
-                    .map(|w| format!("\"{}\"", w))
-                    .collect::<Vec<String>>()
-                    .join(", ");
-
+                    .expect("No Attribute \"patterns\" found!");
                 let regexs: Vec<regex::Regex> = patterns
                     .iter()
                     .map(|pattern| {
@@ -175,42 +137,28 @@ pub fn derive_from_str_from_patterns(input: proc_macro::TokenStream) -> proc_mac
                     .collect();
 
                 let num_unnamed_fields = get_number_unnamed_fields_from_variant(v)
-                    .unwrap_or_else(|| panic!("Enum Variant has to have none or unnamed fields"));
+                    .expect("Enum Variant has to have none or unnamed fields");
 
-                match regexs_same_num_captures(&regexs) {
-                    Some(x) => {
-                        if num_unnamed_fields != x {
-                            panic!("The number of captures in patterns does not match with the number of fields in Variant {}! {} != {}", variant_name, num_unnamed_fields, x);
-                        }
+                if let Some(x) = regexs_same_num_captures(&regexs) {
+                    if num_unnamed_fields != x {
+                        panic!("The number of captures in patterns does not match with the number of fields in Variant {}! {} != {}", &v.ident, num_unnamed_fields, x);
                     }
-                    None => {
-                        panic!("The number of captures in patterns have to be the same for variant {}!", variant_name);
-                    }
+                } else {
+                    panic!("The number of captures in patterns have to be the same for variant {}!", &v.ident);
                 }
-
-                output_str += &format!(
-                    "
-                    gen_variant_check!(
-                        {enum_name}::{variant_name}, 
-                        {num_unnamed_fields}, 
-                        s, 
-                        {patterns_joined}
-                    );
-                "
-                );
+                
+                output += &gen_variant_check(&input.ident, &v.ident, num_unnamed_fields, &patterns).unwrap().to_string();
             }
-
-            output_str += "
+            
+            output += "
                 Err(())
                 }}
             ";
 
-            output.extend(output_str.parse::<TokenStream>().unwrap());
-
-            output.into()
+            output.parse::<TokenStream>().unwrap().into()
         }
         _ => {
-            panic!("`HelloWorldDisplay` can only be derived on enums");
+            panic!("`ErrorEnum` can only be derived on enums");
         }
     }
 }

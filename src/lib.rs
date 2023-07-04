@@ -1,13 +1,9 @@
-mod util;
 mod general_errors;
 mod test;
 
 use std::str::FromStr;
 
-use crate::general_errors::{
-    VerifyError,
-    TypeError,
-};
+use crate::general_errors::{TypeError, VerifyError};
 
 #[derive(serde::Deserialize, Debug, PartialEq)]
 pub struct RpcError {
@@ -17,6 +13,7 @@ pub struct RpcError {
 
 // https://github.com/bitcoin/bitcoin/blob/master/src/rpc/protocol.h
 #[allow(non_camel_case_types)]
+#[rustfmt::skip]
 #[derive(Debug, PartialEq)]
 pub enum RPCErrorCode {
     // General application defined errors
@@ -69,7 +66,7 @@ impl From<RpcError> for RPCErrorCode {
     fn from(error: RpcError) -> Self {
         match error {
             // General application defined errors
-            RpcError { 
+            RpcError {
                 code: -3,
                 message: m,
             } => RPCErrorCode::RPC_TYPE_ERROR(m.parse().unwrap()),
@@ -126,27 +123,16 @@ pub enum ParseError {
 
 impl FromStr for RPCErrorCode {
     type Err = ParseError;
-    
+
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let json_str = match s.find('{') {
             Some(i) => &s[i..],
             None => return Err(ParseError::StartOfJsonMissing),
         };
-        
-        match serde_json::from_str::<RpcError>(&json_str) {
-            Ok(error) => return Ok(error.into()),
-            Err(e) => return Err(ParseError::JsonError(e)),
-        };
-    }
-}
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn from_str() {
-        let error_str: String = r#"RPC_VERIFY_ERROR occured: {"code": -25, "message": "Input not found or already spent"}"#.to_string();
-        let error: crate::RPCErrorCode = error_str.parse().unwrap();
-        
-        assert_eq!(error, crate::RPCErrorCode::RPC_VERIFY_ERROR(crate::VerifyError::MissingOrSpend));
+        match serde_json::from_str::<RpcError>(json_str) {
+            Ok(error) => Ok(error.into()),
+            Err(e) => Err(ParseError::JsonError(e)),
+        }
     }
 }
