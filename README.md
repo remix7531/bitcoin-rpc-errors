@@ -1,16 +1,17 @@
 # bitcoin_rpc_errors
-Parse errors returned by bitcoin core's rpc interface
+Parse errors returned by bitcoin core's rpc interface.
 
 bitcoin_rpc_errors is a Rust library designed to parse errors returned by [Bitcoin Core's](https://github.com/bitcoin/bitcoin) RPC interface. 
-Please note that it is currently in active development and subject to changes.
+
+**Please note that it is currently in active development and subject to changes!**
 
 ## How to use it
-Given a string containig an error message we can call `parse()` to get the RPCErrorCode enum.
+Given a string containig an error message we can call `parse()` to get the `RPCErrorCode` enum.
 ```rust
 let error_str: String = r#"RPC_VERIFY_ERROR occured: {"code": -25, "message": "Input not found or already spent"}"#.to_string();
-let error: crate::RPCErrorCode = error_str.parse().unwrap();
+let error: RPCErrorCode = error_str.parse().unwrap();
         
-assert_eq!(error, crate::RPCErrorCode::RPC_VERIFY_ERROR(crate::VerifyError::MissingOrSpend))
+assert_eq!(error, RPCErrorCode::RPC_VERIFY_ERROR(VerifyError::MissingOrSpend))
 ```
 
 ## How it works
@@ -36,56 +37,52 @@ match error {
 `VerifyError` itself is an enum. It contains all the reasons a `RPC_VERIFY_ERROR` may occure.
 Not all `RPC_VERIFY_ERROR` contain a message that can be interpreted.
 For example in [mining.cpp](https://github.com/bitcoin/bitcoin/blob/427853ab49f610e971b73ea4cc1d5366747e52b1/src/rpc/mining.cpp#L525) the error message just contains the state.
-Multiple erros like this may occure. In this case the Generic(string) is used. 
+Multiple erros like this may occure. In this case the `Generic(String)` is used. In the example you can also see how the `EnumError` procedural derive macro works. 
+The macro implements the `FromStr` trait for us! `patterns` may also contain multiple strings. 
+The strings are [regex](https://docs.rs/regex/latest/regex/) patterns against which an error is matched. 
+The number of captures in the patterns have to match the number of anonymous arguments in the enum variant.
 ```rust
+#[derive(Clone, Debug, PartialEq, EnumError)]
 pub enum VerifyError {
+    // https://github.com/bitcoin/bitcoin/blob/master/src/rpc/mining.cpp#L379
+    #[patterns("TestBlockValidity failed: (.*)")]
     BlockValidityFailed(String),
+
+    // https://github.com/bitcoin/bitcoin/blob/master/src/rpc/mining.cpp#L1064
+    #[patterns(r"Must submit previous header \((.*)\) first")]
     PreviousHeaderMissing(String),
+
+    // https://github.com/bitcoin/bitcoin/blob/master/src/rpc/rawtransaction.cpp#L697
+    #[patterns("Input not found or already spent")]
     MissingOrSpend,
+    
+    // No Pattern
+    // https://github.com/bitcoin/bitcoin/blob/master/src/rpc/mining.cpp#L525
+    // https://github.com/bitcoin/bitcoin/blob/master/src/rpc/mining.cpp#L1072
+    // https://github.com/bitcoin/bitcoin/blob/master/src/rpc/mining.cpp#L1074
     Generic(String),
 }
-```
-The `from_str(s: &str)` for `VerifyError` works as followed: 
-```rust
-fn from_str(s: &str) -> Result<Self, Self::Err> {
-  // https://github.com/bitcoin/bitcoin/blob/master/src/rpc/mining.cpp#L379
-  let block_validity_failed: Pattern = "TestBlockValidity failed: {}".into();
-  ...
-        
-  if let Ok(Some(substring)) = block_validity_failed.match_and_extract(s) {
-    return Ok(VerifyError::BlockValidityFailed(substring));
-  } 
-  ...
-
-  Ok(VerifyError::Generic(s.to_string())
-}
-```
-`Pattern` is a struct is a reverse format. 
-Given a format string the struct is created. `match_and_extract` returns whatever is inside the `{}` if the string matches. `Pattern` may not contain `{}`,
-then it check if the giving strings are equal. This is the case for the `MissingOrSpend` error because it only contain a static message.
-```rust
-let missing_or_spend: Pattern = "Input not found or already spent".into()
 ```
 
 ## State
 The following erorrs parse the message or do not need parsing because they do not return a message:
 
 ### General application defined error
-- [ ] RPC_MISC_ERROR				// std::exception thrown in command handling
-- [x] RPC_TYPE_ERROR				// Unexpected type was passed as parameter
+- [ ] RPC_MISC_ERROR			// std::exception thrown in command handling
+- [x] RPC_TYPE_ERROR			// Unexpected type was passed as parameter
 - [ ] RPC_INVALID_ADDRESS_OR_KEY	// Invalid address or key
-- [x] RPC_OUT_OF_MEMORY				// Ran out of memory during operation
-- [ ] RPC_INVALID_PARAMETER			// Invalid, missing or duplicate parameter
-- [ ] RPC_DATABASE_ERROR			// Database error
+- [x] RPC_OUT_OF_MEMORY			// Ran out of memory during operation
+- [ ] RPC_INVALID_PARAMETER		// Invalid, missing or duplicate parameter
+- [ ] RPC_DATABASE_ERROR		// Database error
 - [ ] RPC_DESERIALIZATION_ERROR		// Error parsing or validating structure in raw format
-- [x] RPC_VERIFY_ERROR				// General error during transaction or block submission
-- [ ] RPC_VERIFY_REJECTED			// Transaction or block was rejected by network rules
+- [x] RPC_VERIFY_ERROR			// General error during transaction or block submission
+- [ ] RPC_VERIFY_REJECTED		// Transaction or block was rejected by network rules
 - [ ] RPC_VERIFY_ALREADY_IN_CHAIN	// Transaction already in chain
-- [ ] RPC_IN_WARMUP					// Client still warming up
-- [ ] RPC_METHOD_DEPRECATED			// RPC method is deprecated
+- [ ] RPC_IN_WARMUP			// Client still warming up
+- [ ] RPC_METHOD_DEPRECATED		// RPC method is deprecated
 
 ### P2P client errors
-- [ ] RPC_CLIENT_NOT_CONNECTED			// Bitcoin is not connected
+- [ ] RPC_CLIENT_NOT_CONNECTED		// Bitcoin is not connected
 - [ ] RPC_CLIENT_IN_INITIAL_DOWNLOAD	// Still downloading initial blocks
 - [ ] RPC_CLIENT_NODE_ALREADY_ADDED    	// Node is already added
 - [ ] RPC_CLIENT_NODE_NOT_ADDED        	// Node has not been added before
@@ -98,9 +95,9 @@ The following erorrs parse the message or do not need parsing because they do no
 - [ ] RPC_CLIENT_MEMPOOL_DISABLED	// No mempool instance found
 
 ### Wallet errors
-- [ ] RPC_WALLET_ERROR					// Unspecified problem with wallet (key not found etc.)
-- [ ] RPC_WALLET_INSUFFICIENT_FUNDS		// Not enough funds in wallet or account
-- [ ] RPC_WALLET_INVALID_LABEL_NAME		// Invalid label name
+- [ ] RPC_WALLET_ERROR			// Unspecified problem with wallet (key not found etc.)
+- [ ] RPC_WALLET_INSUFFICIENT_FUNDS	// Not enough funds in wallet or account
+- [ ] RPC_WALLET_INVALID_LABEL_NAME	// Invalid label name
 - [ ] RPC_WALLET_KEYPOOL_RAN_OUT      	// Keypool ran out, call keypoolrefill first
 - [ ] RPC_WALLET_UNLOCK_NEEDED        	// Enter the wallet passphrase with walletpassphrase first
 - [ ] RPC_WALLET_PASSPHRASE_INCORRECT 	// The wallet passphrase entered was incorrect
@@ -121,10 +118,5 @@ If you encounter an error that is not yet supported by this library, you can eas
 1. Visit the Bitcoin Core GitHub page to find the desired error.
 2. Search for all occurrences of the error (e.g., search for RPC_DATABASE_ERROR).
 3. Create a new enum to represent the error (e.g., DatabaseError).
-4. Implement the From<RpcError> trait for the new enum by following the existing implementations as a reference.
-5. For each occurrence of the DatabaseError, create a variant inside the enum:
-	1. Create a parser to extract relevant information from the error message.
-	2. Add the necessary match_and_extract logic to the from_str function.
+4. Use `EnumError` procedural derive macro! It uses the `patterns` helper attibutes which contain regex patterns to match a specific enum variant. 
 6. Submit a pull request (PR) to contribute your changes to the library!
-
-By following these steps, you can extend the functionality of the library to handle new errors that are currently not supported. Your contributions are greatly appreciated!
