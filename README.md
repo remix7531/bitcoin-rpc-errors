@@ -73,12 +73,12 @@ The following erorrs parse the message or do not need parsing because they do no
 - [ ] RPC_INVALID_ADDRESS_OR_KEY	// Invalid address or key
 - [x] RPC_OUT_OF_MEMORY			// Ran out of memory during operation
 - [ ] RPC_INVALID_PARAMETER		// Invalid, missing or duplicate parameter
-- [ ] RPC_DATABASE_ERROR		// Database error
-- [ ] RPC_DESERIALIZATION_ERROR		// Error parsing or validating structure in raw format
+- [x] RPC_DATABASE_ERROR		// Database error
+- [x] RPC_DESERIALIZATION_ERROR		// Error parsing or validating structure in raw format
 - [x] RPC_VERIFY_ERROR			// General error during transaction or block submission
 - [ ] RPC_VERIFY_REJECTED		// Transaction or block was rejected by network rules
 - [ ] RPC_VERIFY_ALREADY_IN_CHAIN	// Transaction already in chain
-- [ ] RPC_IN_WARMUP			// Client still warming up
+- [x] RPC_IN_WARMUP			// Client still warming up
 - [ ] RPC_METHOD_DEPRECATED		// RPC method is deprecated
 
 ### P2P client errors

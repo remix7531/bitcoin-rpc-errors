@@ -3,9 +3,7 @@ mod general_errors;
 #[cfg(test)]
 mod test;
 
-use crate::general_errors::{TypeError, VerifyError};
-use regex::Regex;
-use std::str::FromStr;
+use crate::general_errors::*;
 
 // https://github.com/bitcoin/bitcoin/blob/master/src/rpc/protocol.h
 #[allow(non_camel_case_types)]
@@ -13,18 +11,18 @@ use std::str::FromStr;
 #[derive(Debug, PartialEq)]
 pub enum Error {
     // General application defined errors
-    RPC_MISC_ERROR,                // std::exception thrown in command handling
-    RPC_TYPE_ERROR(TypeError),     // Unexpected type was passed as parameter
-    RPC_INVALID_ADDRESS_OR_KEY,    // Invalid address or key
-    RPC_OUT_OF_MEMORY,             // Ran out of memory during operation - No sub erros needed
-    RPC_INVALID_PARAMETER,         // Invalid, missing or duplicate parameter
-    RPC_DATABASE_ERROR,            // Database error
-    RPC_DESERIALIZATION_ERROR,     // Error parsing or validating structure in raw format
-    RPC_VERIFY_ERROR(VerifyError), // General error during transaction or block submission
-    RPC_VERIFY_REJECTED,           // Transaction or block was rejected by network rules
-    RPC_VERIFY_ALREADY_IN_CHAIN,   // Transaction already in chain
-    RPC_IN_WARMUP,                 // Client still warming up
-    RPC_METHOD_DEPRECATED,         // RPC method is deprecated
+    RPC_MISC_ERROR,                                     // std::exception thrown in command handling
+    RPC_TYPE_ERROR(TypeError),                          // Unexpected type was passed as parameter
+    RPC_INVALID_ADDRESS_OR_KEY,                         // Invalid address or key
+    RPC_OUT_OF_MEMORY(OutOfMemoryError),                // Ran out of memory during operation - No sub erros needed
+    RPC_INVALID_PARAMETER,                              // Invalid, missing or duplicate parameter
+    RPC_DATABASE_ERROR(DatabaseError),                  // Database error
+    RPC_DESERIALIZATION_ERROR(DeserializationError),    // Error parsing or validating structure in raw format
+    RPC_VERIFY_ERROR(VerifyError),                      // General error during transaction or block submission
+    RPC_VERIFY_REJECTED,                                // Transaction or block was rejected by network rules
+    RPC_VERIFY_ALREADY_IN_CHAIN,                        // Transaction already in chain
+    RPC_IN_WARMUP(WarmupError),                         // Client still warming up
+    RPC_METHOD_DEPRECATED,                              // RPC method is deprecated
 
     // P2P client errors
     RPC_CLIENT_NOT_CONNECTED,         // Bitcoin is not connected
@@ -58,11 +56,11 @@ pub enum Error {
     RPC_UNKOWN_ERROR(i32, String),
 }
 
-impl FromStr for Error {
+impl std::str::FromStr for Error {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let regex = Regex::new(r#"\{"code": (-?\d+), "message": "(.*?)"\}"#).unwrap();
+        let regex = regex::Regex::new(r#"\{"code": (-?\d+), "message": "(.*?)"\}"#).unwrap();
         let captures = regex.captures(s).ok_or(())?;
 
         let code: i32 = captures
@@ -77,14 +75,14 @@ impl FromStr for Error {
             // General application defined errors
             (-3, m) => Error::RPC_TYPE_ERROR(m.parse().unwrap()),
             (-5, _) => Error::RPC_INVALID_ADDRESS_OR_KEY,
-            (-7, _) => Error::RPC_OUT_OF_MEMORY,
+            (-7, m) => Error::RPC_OUT_OF_MEMORY(m.parse().unwrap()),
             (-8, _) => Error::RPC_INVALID_PARAMETER,
-            (-20, _) => Error::RPC_DATABASE_ERROR,
-            (-22, _) => Error::RPC_DESERIALIZATION_ERROR,
+            (-20, m) => Error::RPC_DATABASE_ERROR(m.parse().unwrap()),
+            (-22, m) => Error::RPC_DESERIALIZATION_ERROR(m.parse().unwrap()),
             (-25, m) => Error::RPC_VERIFY_ERROR(m.parse().unwrap()),
             (-26, _) => Error::RPC_VERIFY_REJECTED,
             (-27, _) => Error::RPC_VERIFY_ALREADY_IN_CHAIN,
-            (-28, _) => Error::RPC_IN_WARMUP,
+            (-28, m) => Error::RPC_IN_WARMUP(m.parse().unwrap()),
             (-32, _) => Error::RPC_METHOD_DEPRECATED,
 
             // P2P client errors

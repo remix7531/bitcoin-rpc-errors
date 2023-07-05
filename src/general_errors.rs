@@ -63,6 +63,107 @@ pub enum TypeError {
 }
 
 #[derive(Clone, Debug, PartialEq, EnumError)]
+pub enum OutOfMemoryError {
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/rpc/mining.cpp#L793
+    #[patterns("^Out of memory$")]
+    OutOfMemory,
+}
+
+#[derive(Clone, Debug, PartialEq, EnumError)]
+pub enum DatabaseError {
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/rpc/server_util.cpp#L47
+    #[patterns("^Error: Ban database not loaded$")]
+    BanNotLoaded,
+
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/rpc/blockchain.cpp#L1594
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/rpc/blockchain.cpp#L1513
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/rpc/blockchain.cpp#L1554
+    Generic(String),
+}
+
+#[derive(Clone, Debug, PartialEq, EnumError)]
+pub enum DeserializationError {
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/rpc/mining.cpp#L350
+    #[patterns("^Transaction decode failed for (.*). Make sure the tx has at least one input.$")]
+    TxNoInput(String),
+
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/rpc/mining.cpp#L668
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/rpc/mining.cpp#L994
+    #[patterns("^Block decode failed$")]
+    BlockDecodeFailed,
+
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/rpc/mining.cpp#L998
+    #[patterns("^Block does not start with a coinbase$")]
+    BlockNoCoinbase,
+
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/rpc/mining.cpp#L1058
+    #[patterns("^Block header decode failed$")]
+    BlockDecodeHeaderFailed,
+
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/rpc/rawtransaction_util.cpp#L176
+    #[patterns(r#"^expected object with \{"txid'","vout","scriptPubKey"\}$"#)]
+    ObjectNoTxidVoutScriptPubKey,
+
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/rpc/rawtransaction_util.cpp#L192
+    #[patterns("^vout cannot be negative$")]
+    NegativeVout,
+
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/rpc/rawtransaction_util.cpp#L205
+    #[patterns("^Previous output scriptPubKey mismatch:\n(.*)\nvs:\n(.*)")]
+    PrevScriptPubKeyMismatch(String, String),
+
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/rpc/mempool.cpp#L73
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/rpc/rawtransaction.cpp#L786
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/wallet/rpc/backup.cpp#L335
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/wallet/rpc/spend.cpp#L929
+    #[patterns("^TX decode failed. Make sure the tx has at least one input.$")]
+    TxNoOutput,
+
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/rpc/mempool.cpp#L174
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/rpc/mempool.cpp#L819
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/rpc/rawtransaction.cpp#L658
+    #[patterns(
+        "^TX decode failed: (.*) Make sure the tx has at least one input.$",
+        "^TX decode failed for tx (.*). Make sure the tx has at least one input.$"
+    )]
+    TxNoOutput2(String),
+
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/rpc/rawtransaction.cpp#L1483
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/rpc/rawtransaction.cpp#L181
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/rpc/rawtransaction.cpp#L1065
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/rpc/rawtransaction.cpp#L1483
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/rpc/rawtransaction.cpp#L1530
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/rpc/rawtransaction.cpp#L1744
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/rpc/rawtransaction.cpp#L1860
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/wallet/rpc/spend.cpp#L1577
+    #[patterns("^TX decode failed (.*)$")]
+    TxDecodeFailed(String),
+
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/rpc/rawtransaction.cpp#L487
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/rpc/rawtransaction.cpp#L1634
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/wallet/rpc/spend.cpp#L844
+    #[patterns("^TX decode failed$")]
+    TxDecodeFailed2,
+
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/rpc/rawtransaction.cpp#L663
+    #[patterns("^Missing transactions$")]
+    TxMissing,
+
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/rpc/rawtransaction.cpp#L1640
+    #[patterns("^Inputs must not have scriptSigs and scriptWitnesses$")]
+    SigsWitnessMissing,
+
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/wallet/rpc/wallet.cpp#L689
+    #[patterns("^Transaction hex string decoding failure.$")]
+    TxHexDecodeFailed,
+
+    // No Pattern
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/rpc/util.cpp#L345
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/rpc/util.cpp#L347
+    Generic(String),
+}
+
+#[derive(Clone, Debug, PartialEq, EnumError)]
 pub enum VerifyError {
     // https://github.com/bitcoin/bitcoin/blob/master/src/rpc/mining.cpp#L379
     #[patterns("TestBlockValidity failed: (.*)")]
@@ -80,5 +181,11 @@ pub enum VerifyError {
     // https://github.com/bitcoin/bitcoin/blob/master/src/rpc/mining.cpp#L525
     // https://github.com/bitcoin/bitcoin/blob/master/src/rpc/mining.cpp#L1072
     // https://github.com/bitcoin/bitcoin/blob/master/src/rpc/mining.cpp#L1074
+    Generic(String),
+}
+
+#[derive(Clone, Debug, PartialEq, EnumError)]
+pub enum WarmupError {
+    // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/rpc/server.cpp#L515
     Generic(String),
 }
