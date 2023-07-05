@@ -4,6 +4,7 @@ mod general_errors;
 mod test;
 
 use crate::general_errors::{TypeError, VerifyError};
+use regex::Regex;
 use std::str::FromStr;
 
 // https://github.com/bitcoin/bitcoin/blob/master/src/rpc/protocol.h
@@ -54,86 +55,60 @@ pub enum RPCErrorCode {
     RPC_WALLET_ALREADY_EXISTS,       // There is already a wallet with the same name
 
     // Unknown Error
-    RPC_UNKOWN_ERROR(RpcError),
-}
-
-#[derive(serde::Deserialize, Debug, PartialEq)]
-pub struct RpcError {
-    code: i32,
-    message: String,
-}
-
-impl From<RpcError> for RPCErrorCode {
-    fn from(error: RpcError) -> Self {
-        match error {
-            // General application defined errors
-            RpcError {
-                code: -3,
-                message: m,
-            } => RPCErrorCode::RPC_TYPE_ERROR(m.parse().unwrap()),
-            RpcError { code: -5, .. } => RPCErrorCode::RPC_INVALID_ADDRESS_OR_KEY,
-            RpcError { code: -7, .. } => RPCErrorCode::RPC_OUT_OF_MEMORY,
-            RpcError { code: -8, .. } => RPCErrorCode::RPC_INVALID_PARAMETER,
-            RpcError { code: -20, .. } => RPCErrorCode::RPC_DATABASE_ERROR,
-            RpcError { code: -22, .. } => RPCErrorCode::RPC_DESERIALIZATION_ERROR,
-            RpcError {
-                code: -25,
-                message: m,
-            } => RPCErrorCode::RPC_VERIFY_ERROR(m.parse().unwrap()),
-            RpcError { code: -26, .. } => RPCErrorCode::RPC_VERIFY_REJECTED,
-            RpcError { code: -27, .. } => RPCErrorCode::RPC_VERIFY_ALREADY_IN_CHAIN,
-            RpcError { code: -28, .. } => RPCErrorCode::RPC_IN_WARMUP,
-            RpcError { code: -32, .. } => RPCErrorCode::RPC_METHOD_DEPRECATED,
-
-            // P2P client errors
-            RpcError { code: -9, .. } => RPCErrorCode::RPC_CLIENT_NOT_CONNECTED,
-            RpcError { code: -10, .. } => RPCErrorCode::RPC_CLIENT_IN_INITIAL_DOWNLOAD,
-            RpcError { code: -23, .. } => RPCErrorCode::RPC_CLIENT_NODE_ALREADY_ADDED,
-            RpcError { code: -24, .. } => RPCErrorCode::RPC_CLIENT_NODE_NOT_ADDED,
-            RpcError { code: -29, .. } => RPCErrorCode::RPC_CLIENT_NODE_NOT_CONNECTED,
-            RpcError { code: -30, .. } => RPCErrorCode::RPC_CLIENT_INVALID_IP_OR_SUBNET,
-            RpcError { code: -31, .. } => RPCErrorCode::RPC_CLIENT_P2P_DISABLED,
-            RpcError { code: -34, .. } => RPCErrorCode::RPC_CLIENT_NODE_CAPACITY_REACHED,
-
-            // Wallet errors
-            RpcError { code: -4, .. } => RPCErrorCode::RPC_WALLET_ERROR,
-            RpcError { code: -6, .. } => RPCErrorCode::RPC_WALLET_INSUFFICIENT_FUNDS,
-            RpcError { code: -11, .. } => RPCErrorCode::RPC_WALLET_INVALID_LABEL_NAME,
-            RpcError { code: -12, .. } => RPCErrorCode::RPC_WALLET_KEYPOOL_RAN_OUT,
-            RpcError { code: -13, .. } => RPCErrorCode::RPC_WALLET_UNLOCK_NEEDED,
-            RpcError { code: -14, .. } => RPCErrorCode::RPC_WALLET_PASSPHRASE_INCORRECT,
-            RpcError { code: -15, .. } => RPCErrorCode::RPC_WALLET_WRONG_ENC_STATE,
-            RpcError { code: -16, .. } => RPCErrorCode::RPC_WALLET_ENCRYPTION_FAILED,
-            RpcError { code: -17, .. } => RPCErrorCode::RPC_WALLET_ALREADY_UNLOCKED,
-            RpcError { code: -18, .. } => RPCErrorCode::RPC_WALLET_NOT_FOUND,
-            RpcError { code: -19, .. } => RPCErrorCode::RPC_WALLET_NOT_SPECIFIED,
-            RpcError { code: -35, .. } => RPCErrorCode::RPC_WALLET_ALREADY_LOADED,
-            RpcError { code: -36, .. } => RPCErrorCode::RPC_WALLET_ALREADY_EXISTS,
-
-            // Unknown Error
-            _ => RPCErrorCode::RPC_UNKOWN_ERROR(error),
-        }
-    }
-}
-
-#[derive(Debug)]
-pub enum ParseError {
-    JsonError(serde_json::Error),
-    StartOfJsonMissing,
+    RPC_UNKOWN_ERROR(i32, String),
 }
 
 impl FromStr for RPCErrorCode {
-    type Err = ParseError;
+    type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let json_str = match s.find('{') {
-            Some(i) => &s[i..],
-            None => return Err(ParseError::StartOfJsonMissing),
-        };
+        let regex = Regex::new(r#"\{"code": (-?\d+), "message": "(.*?)"\}"#).unwrap();
+        let captures = regex.captures(&s).ok_or(())?;
+    
+        let code: i32 = captures.get(1).ok_or(())?.as_str().parse().map_err(|_| ())?;
+        let message = captures.get(2).ok_or(())?.as_str().to_string();
+    
+        match (code, &message) {
+            // General application defined errors
+            (-3, m) => Ok(RPCErrorCode::RPC_TYPE_ERROR(m.parse().unwrap())),
+            (-5, _) => Ok(RPCErrorCode::RPC_INVALID_ADDRESS_OR_KEY),
+            (-7, _) => Ok(RPCErrorCode::RPC_OUT_OF_MEMORY),
+            (-8, _) => Ok(RPCErrorCode::RPC_INVALID_PARAMETER),
+            (-20, _) => Ok(RPCErrorCode::RPC_DATABASE_ERROR),
+            (-22, _) => Ok(RPCErrorCode::RPC_DESERIALIZATION_ERROR),
+            (-25, m) => Ok(RPCErrorCode::RPC_VERIFY_ERROR(m.parse().unwrap())),
+            (-26, _) => Ok(RPCErrorCode::RPC_VERIFY_REJECTED),
+            (-27, _) => Ok(RPCErrorCode::RPC_VERIFY_ALREADY_IN_CHAIN),
+            (-28, _) => Ok(RPCErrorCode::RPC_IN_WARMUP),
+            (-32, _) => Ok(RPCErrorCode::RPC_METHOD_DEPRECATED),
 
-        match serde_json::from_str::<RpcError>(json_str) {
-            Ok(error) => Ok(error.into()),
-            Err(e) => Err(ParseError::JsonError(e)),
+            // P2P client errors
+            (-9, _) => Ok(RPCErrorCode::RPC_CLIENT_NOT_CONNECTED),
+            (-10, _) => Ok(RPCErrorCode::RPC_CLIENT_IN_INITIAL_DOWNLOAD),
+            (-23, _) => Ok(RPCErrorCode::RPC_CLIENT_NODE_ALREADY_ADDED),
+            (-24, _) => Ok(RPCErrorCode::RPC_CLIENT_NODE_NOT_ADDED),
+            (-29, _) => Ok(RPCErrorCode::RPC_CLIENT_NODE_NOT_CONNECTED),
+            (-30, _) => Ok(RPCErrorCode::RPC_CLIENT_INVALID_IP_OR_SUBNET),
+            (-31, _) => Ok(RPCErrorCode::RPC_CLIENT_P2P_DISABLED),
+            (-34, _) => Ok(RPCErrorCode::RPC_CLIENT_NODE_CAPACITY_REACHED),
+
+            // Wallet errors
+            (-4, _) => Ok(RPCErrorCode::RPC_WALLET_ERROR),
+            (-6, _) => Ok(RPCErrorCode::RPC_WALLET_INSUFFICIENT_FUNDS),
+            (-11, _) => Ok(RPCErrorCode::RPC_WALLET_INVALID_LABEL_NAME),
+            (-12, _) => Ok(RPCErrorCode::RPC_WALLET_KEYPOOL_RAN_OUT),
+            (-13, _) => Ok(RPCErrorCode::RPC_WALLET_UNLOCK_NEEDED),
+            (-14, _) => Ok(RPCErrorCode::RPC_WALLET_PASSPHRASE_INCORRECT),
+            (-15, _) => Ok(RPCErrorCode::RPC_WALLET_WRONG_ENC_STATE),
+            (-16, _) => Ok(RPCErrorCode::RPC_WALLET_ENCRYPTION_FAILED),
+            (-17, _) => Ok(RPCErrorCode::RPC_WALLET_ALREADY_UNLOCKED),
+            (-18, _) => Ok(RPCErrorCode::RPC_WALLET_NOT_FOUND),
+            (-19, _) => Ok(RPCErrorCode::RPC_WALLET_NOT_SPECIFIED),
+            (-35, _) => Ok(RPCErrorCode::RPC_WALLET_ALREADY_LOADED),
+            (-36, _) => Ok(RPCErrorCode::RPC_WALLET_ALREADY_EXISTS),
+
+            // Unknown Error
+            _ => Ok(RPCErrorCode::RPC_UNKOWN_ERROR(code, message)),
         }
     }
 }
