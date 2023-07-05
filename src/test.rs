@@ -1,7 +1,7 @@
-use crate::{RPCErrorCode, VerifyError};
-use proc_macro_magic::ErrorEnum;
+use crate::{Error, VerifyError};
+use proc_macro_magic::EnumError;
 
-#[derive(Debug, PartialEq, ErrorEnum)]
+#[derive(Debug, PartialEq, EnumError)]
 enum Enum1 {
     #[patterns("^Hello (.*) (.*)$", "^(.*) World (.*)!$")]
     Variant1(String, String),
@@ -11,7 +11,7 @@ enum Enum1 {
     Variant3(String),
 }
 
-#[derive(Debug, PartialEq, ErrorEnum)]
+#[derive(Debug, PartialEq, EnumError)]
 enum Enum2 {
     #[patterns("^moin$")]
     Variant1,
@@ -83,10 +83,7 @@ fn from_str() {
     let error_str = String::from(
         r#"RPC_VERIFY_ERROR occured: {"code": -25, "message": "Input not found or already spent"}"#,
     );
-    let error: RPCErrorCode = error_str.parse().unwrap();
+    let error: Error = error_str.parse().unwrap();
 
-    assert_eq!(
-        error,
-        RPCErrorCode::RPC_VERIFY_ERROR(VerifyError::MissingOrSpend)
-    );
+    assert_eq!(error, Error::RPC_VERIFY_ERROR(VerifyError::MissingOrSpend));
 }

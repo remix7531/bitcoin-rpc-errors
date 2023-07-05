@@ -1,6 +1,6 @@
-use proc_macro_magic::ErrorEnum;
+use proc_macro_magic::EnumError;
 
-#[derive(Clone, Debug, PartialEq, ErrorEnum)]
+#[derive(Clone, Debug, PartialEq, EnumError)]
 pub enum TypeError {
     // https://github.com/bitcoin/bitcoin/blob/master/src/rpc/signmessage.cpp#L49
     // https://github.com/bitcoin/bitcoin/blob/master/src/wallet/rpc/signmessage.cpp#L55
@@ -62,7 +62,7 @@ pub enum TypeError {
     Missing(String),
 }
 
-#[derive(Clone, Debug, PartialEq, ErrorEnum)]
+#[derive(Clone, Debug, PartialEq, EnumError)]
 pub enum VerifyError {
     // https://github.com/bitcoin/bitcoin/blob/master/src/rpc/mining.cpp#L379
     #[patterns("TestBlockValidity failed: (.*)")]

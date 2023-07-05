@@ -37,12 +37,12 @@ match error {
 `VerifyError` itself is an enum. It contains all the reasons a `RPC_VERIFY_ERROR` may occure.
 Not all `RPC_VERIFY_ERROR` contain a message that can be interpreted.
 For example in [mining.cpp](https://github.com/bitcoin/bitcoin/blob/427853ab49f610e971b73ea4cc1d5366747e52b1/src/rpc/mining.cpp#L525) the error message just contains the state.
-Multiple erros like this may occure. In this case the `Generic(String)` is used. In the example you can also see how the `ErrorEnum` procedural derive macro works. 
+Multiple erros like this may occure. In this case the `Generic(String)` is used. In the example you can also see how the `EnumError` procedural derive macro works. 
 The macro implements the `FromStr` trait for us! `patterns` may also contain multiple strings. 
 The strings are [regex](https://docs.rs/regex/latest/regex/) patterns against which an error is matched. 
 The number of captures in the patterns have to match the number of anonymous arguments in the enum variant.
 ```rust
-#[derive(Clone, Debug, PartialEq, ErrorEnum)]
+#[derive(Clone, Debug, PartialEq, EnumError)]
 pub enum VerifyError {
     // https://github.com/bitcoin/bitcoin/blob/master/src/rpc/mining.cpp#L379
     #[patterns("TestBlockValidity failed: (.*)")]
@@ -118,5 +118,5 @@ If you encounter an error that is not yet supported by this library, you can eas
 1. Visit the Bitcoin Core GitHub page to find the desired error.
 2. Search for all occurrences of the error (e.g., search for RPC_DATABASE_ERROR).
 3. Create a new enum to represent the error (e.g., DatabaseError).
-4. Use `ErrorEnum` procedural derive macro! It uses the `patterns` helper attibutes which contain regex patterns to match a specific enum variant. 
+4. Use `EnumError` procedural derive macro! It uses the `patterns` helper attibutes which contain regex patterns to match a specific enum variant. 
 6. Submit a pull request (PR) to contribute your changes to the library!
