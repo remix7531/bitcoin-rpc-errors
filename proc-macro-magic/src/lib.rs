@@ -132,7 +132,7 @@ fn gen_variant_check(enum_name: &Ident, variant_name: &Ident, num_captures: usiz
 }
 
 
-#[proc_macro_derive(ErrorEnum, attributes(patterns))]
+#[proc_macro_derive(EnumError, attributes(patterns))]
 pub fn derive_from_str_from_patterns(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // Parse the input tokens
     let input = syn::parse_macro_input!(input as syn::DeriveInput);
@@ -186,7 +186,7 @@ pub fn derive_from_str_from_patterns(input: proc_macro::TokenStream) -> proc_mac
             output.parse::<TokenStream>().unwrap().into()
         }
         _ => {
-            panic!("`ErrorEnum` can only be derived on enums");
+            panic!("`EnumError` can only be derived on enums");
         }
     }
 }
