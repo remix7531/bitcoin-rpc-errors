@@ -1,15 +1,10 @@
 mod general_errors;
+
+#[cfg(test)]
 mod test;
 
-use std::str::FromStr;
-
 use crate::general_errors::{TypeError, VerifyError};
-
-#[derive(serde::Deserialize, Debug, PartialEq)]
-pub struct RpcError {
-    code: i32,
-    message: String,
-}
+use std::str::FromStr;
 
 // https://github.com/bitcoin/bitcoin/blob/master/src/rpc/protocol.h
 #[allow(non_camel_case_types)]
@@ -60,6 +55,12 @@ pub enum RPCErrorCode {
 
     // Unknown Error
     RPC_UNKOWN_ERROR(RpcError),
+}
+
+#[derive(serde::Deserialize, Debug, PartialEq)]
+pub struct RpcError {
+    code: i32,
+    message: String,
 }
 
 impl From<RpcError> for RPCErrorCode {

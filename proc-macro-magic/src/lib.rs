@@ -1,6 +1,6 @@
 use proc_macro2::{TokenStream, Ident};
 use regex::Regex;
-use syn::{Attribute, Data::Enum, Fields, Lit, Meta, NestedMeta, Variant};
+use syn::{Attribute, Data::Enum, DataEnum, Fields, Type::Path, Lit, Meta, NestedMeta, Variant};
 use quote::{quote};
 
 fn get_string_tokens_from_attribute(attribute: &Attribute) -> Vec<String> {
@@ -64,6 +64,29 @@ fn regexs_same_num_captures(regexs: &[Regex]) -> Option<usize> {
     }
 }
 
+// Checks if the enum contains a variant "Generic(String)"
+fn contains_generic_variant(data_enum: &DataEnum) -> bool {
+    data_enum.variants.iter().any(|variant| is_generic_string_variant(variant))
+}
+
+fn is_generic_string_variant(variant: &syn::Variant) -> bool {
+    if variant.ident != "Generic" {
+        return false;
+    }
+    
+    if let Fields::Unnamed(fields) = &variant.fields {
+        if fields.unnamed.len() == 1 {
+            if let Path(type_path) = &fields.unnamed[0].ty {
+                if let Some(segment) = type_path.path.segments.last() {
+                    return segment.ident == "String";
+                }
+            }
+        }
+    }
+
+    false
+}
+
 fn gen_variant_check(enum_name: &Ident, variant_name: &Ident, num_captures: usize, patterns: &[String]) 
     -> Result<TokenStream, ()>
 {
@@ -117,15 +140,14 @@ pub fn derive_from_str_from_patterns(input: proc_macro::TokenStream) -> proc_mac
     // Check if the input is an enum
     match input.data {
         Enum(e) => {
-            let mut output: String = format!(
-            "
+            let mut output: String = format!("
                 impl std::str::FromStr for {} {{
                     type Err = ();
                     
                     fn from_str(s: &str) -> Result<Self, Self::Err> {{
             ", &input.ident);
 
-            for v in &e.variants {
+            for v in e.variants.iter().filter(|variant| !is_generic_string_variant(variant)) {
                 let patterns: Vec<String> = get_string_tokens_with_name_from_variant(v, "patterns")
                     .expect("No Attribute \"patterns\" found!");
                 let regexs: Vec<regex::Regex> = patterns
@@ -150,10 +172,16 @@ pub fn derive_from_str_from_patterns(input: proc_macro::TokenStream) -> proc_mac
                 output += &gen_variant_check(&input.ident, &v.ident, num_unnamed_fields, &patterns).unwrap().to_string();
             }
             
-            output += "
-                Err(())
-                }}
-            ";
+            if contains_generic_variant(&e) {
+                output += &format!("
+                    Ok({}::Generic(s.to_string()))
+                ", &input.ident);
+            } else {
+                output += "
+                    Err(())
+                ";
+            }
+            output += "}}";
 
             output.parse::<TokenStream>().unwrap().into()
         }
