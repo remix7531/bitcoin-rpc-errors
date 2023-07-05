@@ -63,7 +63,7 @@ impl FromStr for Error {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let regex = Regex::new(r#"\{"code": (-?\d+), "message": "(.*?)"\}"#).unwrap();
-        let captures = regex.captures(&s).ok_or(())?;
+        let captures = regex.captures(s).ok_or(())?;
 
         let code: i32 = captures
             .get(1)
@@ -71,7 +71,7 @@ impl FromStr for Error {
             .as_str()
             .parse()
             .map_err(|_| ())?;
-        let message = captures.get(2).ok_or(())?.as_str().to_string();
+        let message: String = captures.get(2).ok_or(())?.as_str().to_string();
 
         match (code, &message) {
             // General application defined errors

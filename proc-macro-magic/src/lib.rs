@@ -103,29 +103,29 @@ fn gen_variant_check(enum_name: &Ident, variant_name: &Ident, num_captures: usiz
             if let [] = v.as_slice() {
                 return Ok(#enum_name::#variant_name);
             }
-        }.to_string(),
+        },
         1 => quote! {
             if let [a] = v.as_slice() {
                 return Ok(#enum_name::#variant_name(a.to_string()));
             }
-        }.to_string(),
+        },
         2 => quote! {
             if let [a, b] = v.as_slice() {
                 return Ok(#enum_name::#variant_name(a.to_string(), b.to_string()));
             }
-        }.to_string(),
+        },
         3 => quote! {
             if let [a, b, c] = v.as_slice() {
                 return Ok(#enum_name::#variant_name(a.to_string(), b.to_string(), c.to_string()));
             }
-        }.to_string(),
+        },
         4 => quote! {
             if let [a, b, c, d] = v.as_slice() {
                 return Ok(#enum_name::#variant_name(a.to_string(), b.to_string(), c.to_string(), d.to_string()));
             }
-        }.to_string(),
+        },
         _ => return Err(()),
-    };
+    }.to_string();
     output += "}";
 
     Ok(output.parse::<TokenStream>().unwrap())
