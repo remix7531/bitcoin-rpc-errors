@@ -6,21 +6,23 @@ bitcoin_rpc_errors is a Rust library designed to parse errors returned by [Bitco
 **Please note that it is currently in active development and subject to changes!**
 
 ## How to use it
-Given a string containig an error message we can call `parse()` to get the `RPCErrorCode` enum.
+Given a string containig an error message we can call `parse()` to get the `Error` enum.
 ```rust
-let error_str: String = r#"RPC_VERIFY_ERROR occured: {"code": -25, "message": "Input not found or already spent"}"#.to_string();
-let error: RPCErrorCode = error_str.parse().unwrap();
-        
-assert_eq!(error, RPCErrorCode::RPC_VERIFY_ERROR(VerifyError::MissingOrSpend))
+let error_str = String::from(
+        r#"RPC_VERIFY_ERROR occured: {"code": -25, "message": "Input not found or already spent"}"#
+);
+let error: Error = error_str.parse().unwrap();
+
+assert_eq!(error, Error::RPC_VERIFY_ERROR(VerifyError::MissingOrSpend));
 ```
 
 ## How it works
 Bitcoin Core implements various [RPC errors](https://github.com/bitcoin/bitcoin/blob/427853ab49f610e971b73ea4cc1d5366747e52b1/src/rpc/protocol.h#L23), 
 each of which is returned as a JSON object containing a `code` and a `message`.
-The `code` represents a broad error category. Every enum variant in `RPCErrorCode` corresponds to a specific error `code`.
+The `code` represents a broad error category. Every enum variant in `Error` corresponds to a specific error `code`.
 
 ```rust
-pub enum RPCErrorCode {
+pub enum Error {
   ...
   RPC_VERIFY_ERROR(VerifyError), // General error during transaction or block submission
   ...
@@ -28,10 +30,10 @@ pub enum RPCErrorCode {
 ```
 The `RPC_VERIFY_ERROR` itself contains an enum named `VerifyError`. `RPC_VERIFY_ERROR` has error code -25. When you parse an error bitcoin_rpc_errors matches the code and message.
 ```rust
-match error {
-  ...
-  RpcError { code: -25, message: m, } => RPCErrorCode::RPC_VERIFY_ERROR(VerifyError::from_str(&m).unwrap())
-  ...
+match (code, &message) {
+        ...
+        (-25, m) => Error::RPC_VERIFY_ERROR(m.parse().unwrap()),
+        ...
 }
 ```
 `VerifyError` itself is an enum. It contains all the reasons a `RPC_VERIFY_ERROR` may occure.
