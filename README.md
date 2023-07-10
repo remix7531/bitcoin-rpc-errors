@@ -26,7 +26,7 @@ pub enum Error {
   ...
 }
 ```
-The `RPC_VERIFY_ERROR` itself contains an enum named `VerifyError`. `RPC_VERIFY_ERROR` has error code -25. When you parse an error bitcoin_rpc_errors matches the code and message.
+The `RPC_VERIFY_ERROR` itself contains an enum named `VerifyError`. `RPC_VERIFY_ERROR` has error code -25. When you parse an error bitcoin-rpc-errors matches the code and message.
 ```rust
 match (code, &message) {
         ...
