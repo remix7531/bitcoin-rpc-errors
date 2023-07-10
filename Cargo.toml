@@ -1,5 +1,5 @@
 [package]
-name = "bitcoin_rpc_errors"
+name = "bitcoin-rpc-errors"
 version = "0.1.0"
 edition = "2021"
 

@@ -1,4 +1,4 @@
-# bitcoin_rpc_errors
+# bitcoin-rpc-errors
 Parse errors returned by bitcoin core's rpc interface.
 
 bitcoin_rpc_errors is a Rust library designed to parse errors returned by [Bitcoin Core's](https://github.com/bitcoin/bitcoin) RPC interface. 
