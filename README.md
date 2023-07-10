@@ -37,7 +37,7 @@ match (code, &message) {
 `VerifyError` itself is an enum. It contains all the reasons a `RPC_VERIFY_ERROR` may occure.
 Not all `RPC_VERIFY_ERROR` contain a message that can be interpreted.
 For example in [mining.cpp](https://github.com/bitcoin/bitcoin/blob/427853ab49f610e971b73ea4cc1d5366747e52b1/src/rpc/mining.cpp#L525) the error message just contains the state.
-Multiple erros like this may occure. In this case the `Generic(String)` is used. In the example you can also see how the `EnumError` procedural derive macro works. 
+Multiple erros like this may occure. In this case the `Generic(String)` is used. In the example you can also see how the `EnumError` procedural derive macro is used. 
 The macro implements the `FromStr` trait for us! `patterns` may also contain multiple strings. 
 The strings are [regex](https://docs.rs/regex/latest/regex/) patterns against which an error is matched. 
 The number of captures in the patterns have to match the number of anonymous arguments in the enum variant.
