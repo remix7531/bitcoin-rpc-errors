@@ -12,5 +12,5 @@ proc-macro=true
 syn = "2.0.25"
 quote = "1.0.29"
 regex = "1.9.1"
-proc-macro2 = "1.0.64"
+proc-macro2 = "1.0.57"
 
