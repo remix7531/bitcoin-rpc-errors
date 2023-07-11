@@ -1,15 +1,21 @@
-use proc_macro2::{TokenStream, Ident};
+use proc_macro2::{TokenStream, TokenTree, Ident};
 use regex::Regex;
-use syn::{Attribute, Data::Enum, DataEnum, Fields, Type::Path, Lit, Meta, NestedMeta, Variant};
-use quote::{quote};
+use syn::{Attribute, Data::Enum, DataEnum, Fields, Type::Path, Lit, Meta, Variant};
+use quote::{quote, ToTokens};
 
 fn get_string_tokens_from_attribute(attribute: &Attribute) -> Vec<String> {
     let mut string_tokens = Vec::new();
 
-    if let Ok(Meta::List(list)) = attribute.parse_meta() {
-        for nested_meta in list.nested {
-            if let NestedMeta::Lit(Lit::Str(string_token)) = nested_meta {
-                string_tokens.push(string_token.value());
+    if let Meta::List(list) = &attribute.meta {
+        for token_trees in list.to_token_stream() {
+            if let TokenTree::Group(group) = token_trees {
+                for token_trees2 in group.stream() {
+                    if let TokenTree::Literal(literal) = token_trees2 {
+                        if let Lit::Str(pattern) = Lit::new(literal) {
+                            string_tokens.push(pattern.value())
+                        }
+                    }
+                }
             }
         }
     }
@@ -22,7 +28,7 @@ fn get_attribute_with_name_from_variant<'a>(
     name: &str,
 ) -> Option<&'a Attribute> {
     for attr in &variant.attrs {
-        if attr.path.is_ident(name) {
+        if attr.path().is_ident(name) {
             return Some(attr);
         }
     }

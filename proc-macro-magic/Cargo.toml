@@ -9,8 +9,8 @@ edition = "2021"
 proc-macro=true
 
 [dependencies]
-syn = "1.0"
-quote = "1.0"
-regex = "1.8.4"
-proc-macro2 = "1.0.60"
+syn = "2.0.25"
+quote = "1.0.29"
+regex = "1.9.1"
+proc-macro2 = "1.0.64"
 
