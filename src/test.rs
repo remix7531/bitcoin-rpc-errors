@@ -80,10 +80,15 @@ fn test_generic_neg() {
 // Tests with real erorrs
 #[test]
 fn from_str() {
-    let error_str = String::from(
+    let error_str1 = String::from(
         r#"RPC_VERIFY_ERROR occured: {"code": -25, "message": "Input not found or already spent"}"#,
     );
-    let error: Error = error_str.parse().unwrap();
-
-    assert_eq!(error, Error::RPC_VERIFY_ERROR(VerifyError::MissingOrSpend));
+    let error1: Error = error_str1.parse().unwrap();
+    assert_eq!(error1, Error::RPC_VERIFY_ERROR(VerifyError::MissingOrSpend));
+    
+    let error_str2 = String::from(
+        r#"sendrawtransaction RPC error: {"code":-27,"message":"Transaction already in block chain"}"#
+    );
+    let error2: Error = error_str2.parse().unwrap();
+    assert_eq!(error2, Error::RPC_VERIFY_ALREADY_IN_CHAIN);
 }

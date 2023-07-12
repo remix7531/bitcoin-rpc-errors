@@ -60,7 +60,14 @@ impl std::str::FromStr for Error {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let regex = regex::Regex::new(r#"\{"code": (-?\d+), "message": "(.*?)"\}"#).unwrap();
+        let regex = regex::Regex::new(concat!(
+            r#"\{"#, "[[:space:]]*", 
+            r#""code":"#, "[[:space:]]*",
+            r#"(-?\d+),"#, "[[:space:]]*",
+            r#""message":"#, "[[:space:]]*",
+            r#""(.*?)""#, "[[:space:]]*",
+            r#"\}"#,
+        )).unwrap();
         let captures = regex.captures(s).ok_or(())?;
 
         let code: i32 = captures
