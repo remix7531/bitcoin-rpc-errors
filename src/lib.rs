@@ -22,7 +22,7 @@ pub enum Error {
     RPC_VERIFY_REJECTED,                                // Transaction or block was rejected by network rules
     RPC_VERIFY_ALREADY_IN_CHAIN,                        // Transaction already in chain
     RPC_IN_WARMUP(WarmupError),                         // Client still warming up
-    RPC_METHOD_DEPRECATED,                              // RPC method is deprecated
+    RPC_METHOD_DEPRECATED(MethodDeprecated),            // RPC method is deprecated
 
     // P2P client errors
     RPC_CLIENT_NOT_CONNECTED,         // Bitcoin is not connected
@@ -83,7 +83,7 @@ impl std::str::FromStr for Error {
             (-26, _) => Error::RPC_VERIFY_REJECTED,
             (-27, _) => Error::RPC_VERIFY_ALREADY_IN_CHAIN,
             (-28, m) => Error::RPC_IN_WARMUP(m.parse().unwrap()),
-            (-32, _) => Error::RPC_METHOD_DEPRECATED,
+            (-32, m) => Error::RPC_METHOD_DEPRECATED(m.parse().unwrap()),
 
             // P2P client errors
             (-9, _) => Error::RPC_CLIENT_NOT_CONNECTED,
