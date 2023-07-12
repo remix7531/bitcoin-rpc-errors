@@ -189,3 +189,10 @@ pub enum WarmupError {
     // https://github.com/bitcoin/bitcoin/blob/bc4f6b13feb29146b7e10e86f93dc7f6fb6937f2/src/rpc/server.cpp#L515
     Generic(String),
 }
+
+#[derive(Clone, Debug, PartialEq, EnumError)]
+pub enum MethodDeprecated {
+    // https://github.com/bitcoin/bitcoin/blob/357e3f6aa476658aecae7239b4b06d2bc362ff1e/src/wallet/rpc/coins.cpp#L198
+    #[patterns(r#"^dummy first argument must be excluded or set to "*".$"#)]
+    WrongDummyArgument,
+}
