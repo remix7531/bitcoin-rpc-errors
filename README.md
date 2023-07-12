@@ -65,7 +65,7 @@ pub enum VerifyError {
 ```
 
 ## State
-The following erorrs parse the message or do not need parsing because they do not return a message:
+The following erorrs parse the message or do not need parsing because they do not return a message (~~strikethrough~~):
 
 ### General application defined error
 - [ ] RPC_MISC_ERROR			// std::exception thrown in command handling
@@ -77,7 +77,7 @@ The following erorrs parse the message or do not need parsing because they do no
 - [x] RPC_DESERIALIZATION_ERROR		// Error parsing or validating structure in raw format
 - [x] RPC_VERIFY_ERROR			// General error during transaction or block submission
 - [ ] RPC_VERIFY_REJECTED		// Transaction or block was rejected by network rules
-- [ ] RPC_VERIFY_ALREADY_IN_CHAIN	// Transaction already in chain
+- [x] ~~RPC_VERIFY_ALREADY_IN_CHAIN~~	// Transaction already in chain
 - [x] RPC_IN_WARMUP			// Client still warming up
 - [x] RPC_METHOD_DEPRECATED		// RPC method is deprecated
 
