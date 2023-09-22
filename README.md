@@ -44,22 +44,22 @@ The number of captures in the patterns have to match the number of anonymous arg
 ```rust
 #[derive(Clone, Debug, PartialEq, EnumError)]
 pub enum VerifyError {
-    // https://github.com/bitcoin/bitcoin/blob/master/src/rpc/mining.cpp#L379
-    #[patterns("TestBlockValidity failed: (.*)")]
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/mining.cpp#L379
+    #[patterns("^TestBlockValidity failed: (.*)")]
     BlockValidityFailed(String),
 
-    // https://github.com/bitcoin/bitcoin/blob/master/src/rpc/mining.cpp#L1064
-    #[patterns(r"Must submit previous header \((.*)\) first")]
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/mining.cpp#L1030
+    #[patterns("^Must submit previous header \((.*)\) first$")]
     PreviousHeaderMissing(String),
 
-    // https://github.com/bitcoin/bitcoin/blob/master/src/rpc/rawtransaction.cpp#L697
-    #[patterns("Input not found or already spent")]
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/rawtransaction.cpp#L612
+    #[patterns("^Input not found or already spent$")]
     MissingOrSpend,
-    
+
     // No Pattern
-    // https://github.com/bitcoin/bitcoin/blob/master/src/rpc/mining.cpp#L525
-    // https://github.com/bitcoin/bitcoin/blob/master/src/rpc/mining.cpp#L1072
-    // https://github.com/bitcoin/bitcoin/blob/master/src/rpc/mining.cpp#L1074
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/mining.cpp#L491
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/mining.cpp#L1038
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/mining.cpp#L1040
     Generic(String),
 }
 ```
