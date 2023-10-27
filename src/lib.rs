@@ -11,7 +11,7 @@ use crate::general_errors::*;
 #[derive(Debug, PartialEq)]
 pub enum Error {
     // General application defined errors
-    RPC_MISC_ERROR,                                     // std::exception thrown in command handling
+    RPC_MISC_ERROR(MiscError),                          // std::exception thrown in command handling
     RPC_TYPE_ERROR(TypeError),                          // Unexpected type was passed as parameter
     RPC_INVALID_ADDRESS_OR_KEY,                         // Invalid address or key
     RPC_OUT_OF_MEMORY(OutOfMemoryError),                // Ran out of memory during operation - No sub erros needed
@@ -80,6 +80,7 @@ impl std::str::FromStr for Error {
 
         Ok(match (code, &message) {
             // General application defined errors
+            (-1, m) => Error::RPC_MISC_ERROR(m.parse().unwrap()),
             (-3, m) => Error::RPC_TYPE_ERROR(m.parse().unwrap()),
             (-5, _) => Error::RPC_INVALID_ADDRESS_OR_KEY,
             (-7, m) => Error::RPC_OUT_OF_MEMORY(m.parse().unwrap()),
