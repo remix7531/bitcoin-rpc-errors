@@ -1,7 +1,7 @@
 use proc_macro_magic::EnumError;
 
 #[derive(Clone, Debug, PartialEq, EnumError)]
-pub enum TypeError {
+pub enum MiscError {
     // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/blockchain.cpp#L459
     #[patterns("^Block header missing$")]
     BlockHeaderMissing,
@@ -10,7 +10,7 @@ pub enum TypeError {
     // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/blockchain.cpp#L586
     #[patterns(
         "^In prune mode, only blocks that the node has already synced previously can be fetched from a peer$",
-        "^Block not available (pruned data)$"
+        r"^Block not available \(pruned data\)$"
     )]
     BlockUnavailablePrunedNode,
 
@@ -19,11 +19,12 @@ pub enum TypeError {
     BlockAlreadyDownloaded,
 
     // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/blockchain.cpp#L594
-    #[patterns("^Block not found on disk$")]
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/rawtransaction.cpp#L286
+    #[patterns("^Block not found on disk$", "^Block not available$")]
     BlockNotFound,
 
     // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/blockchain.cpp#L610
-    #[patterns("^Undo data not available (pruned data)$")]
+    #[patterns(r"^Undo data not available \(pruned data\)$")]
     UndoUnavailablePrunedNode,
 
     // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/blockchain.cpp#L615
@@ -84,10 +85,6 @@ pub enum TypeError {
     #[patterns("^Unexpected empty result$")]
     EmptyAddresses,
     
-    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/rawtransaction.cpp#L286
-    #[patterns("^Block not available$")]
-    BlockNotFound,
-    
     // https://github.com/bitcoin/bitcoin/blob/v25.0/src/wallet/rpc/addresses.cpp#L781
     #[patterns("^Failed to display address$")]
     FailedToDisplayAddress,
@@ -104,13 +101,13 @@ pub enum TypeError {
     
     // https://github.com/bitcoin/bitcoin/blob/v25.0/src/wallet/rpc/backup.cpp#L1425
     // https://github.com/bitcoin/bitcoin/blob/v25.0/src/wallet/rpc/backup.cpp#L1723
-    #[patterns("^Rescan failed for key with creation timestamp (.*). There was an error reading a \
+    #[patterns(r"^Rescan failed for key with creation timestamp (.*). There was an error reading a \
                 block from time (.*), which is after or within (.*) seconds of key creation, and \
                 could contain transactions pertaining to the key. As a result, transactions \
                 and coins using this key may not appear in the wallet. This error could be \
-                caused by pruning or data corruption (see bitcoind log for details) and could \
-                be dealt with by downloading and rescanning the relevant blocks (see -reindex \
-                option and rescanblockchain RPC).$")]
+                caused by pruning or data corruption \(see bitcoind log for details\) and could \
+                be dealt with by downloading and rescanning the relevant blocks \(see -reindex \
+                option and rescanblockchain RPC\).$")]
     RescanFailed(String, String, String),
     
     // https://github.com/bitcoin/bitcoin/blob/v25.0/src/wallet/rpc/transactions.cpp#L907
@@ -119,7 +116,7 @@ pub enum TypeError {
     
     // https://github.com/bitcoin/bitcoin/blob/v25.0/src/wallet/rpc/transactions.cpp#L919
     #[patterns("^Rescan failed. Potentially corrupted data files.$")]
-    RescanFailed,
+    RescanFailedCorruptedData,
     
     // https://github.com/bitcoin/bitcoin/blob/v25.0/src/wallet/rpc/transactions.cpp#L921
     #[patterns("^Rescan aborted.$")]
@@ -150,7 +147,7 @@ pub enum TypeError {
 
     // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/util.cpp#L45
     #[patterns("^JSON value of type (.*) for field (.*) is not of expected type (.*)")]
-    WrongJsonType(String, String),
+    WrongJsonType(String, String, String),
 
     // TODO: Look for more like this
     // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/util.cpp#L54
@@ -304,7 +301,7 @@ pub enum VerifyError {
     BlockValidityFailed(String),
 
     // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/mining.cpp#L1030
-    #[patterns("^Must submit previous header \((.*)\) first$")]
+    #[patterns(r"^Must submit previous header \((.*)\) first$")]
     PreviousHeaderMissing(String),
 
     // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/rawtransaction.cpp#L612
