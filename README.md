@@ -68,7 +68,7 @@ pub enum VerifyError {
 The following erorrs parse the message or do not need parsing because they do not return a message (~~strikethrough~~):
 
 ### General application defined error
-- [ ] RPC_MISC_ERROR			// std::exception thrown in command handling
+- [x] RPC_MISC_ERROR			// std::exception thrown in command handling
 - [x] RPC_TYPE_ERROR			// Unexpected type was passed as parameter
 - [ ] RPC_INVALID_ADDRESS_OR_KEY	// Invalid address or key
 - [x] RPC_OUT_OF_MEMORY			// Ran out of memory during operation
