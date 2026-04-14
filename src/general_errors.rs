@@ -195,6 +195,82 @@ pub enum TypeError {
 }
 
 #[derive(Clone, Debug, PartialEq, EnumError)]
+pub enum InvalidAddressOrKeyError {
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/blockchain.cpp#L130
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/blockchain.cpp#L564
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/blockchain.cpp#L736
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/blockchain.cpp#L1357
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/blockchain.cpp#L1546
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/blockchain.cpp#L1586
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/blockchain.cpp#L1642
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/blockchain.cpp#L2533
+    #[patterns("^Block not found$")]
+    BlockNotFound,
+
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/blockchain.cpp#L2375
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/blockchain.cpp#L2518
+    #[patterns("^Unknown filtertype$")]
+    UnknownFilterType,
+
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/mempool.cpp#L466
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/mempool.cpp#L527
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/mempool.cpp#L579
+    #[patterns("^Transaction not in mempool$")]
+    TxNotInMempool,
+
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/mining.cpp#L178
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/output_script.cpp#L278
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/output_script.cpp#L284
+    #[patterns("^Cannot derive script without private keys$")]
+    PrivKeyMissing,
+
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/mining.cpp#L272
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/mining.cpp#L321
+    #[patterns("^Error: Invalid address$", "^Error: Invalid address or descriptor$")]
+    InvalidAddress,
+
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/mining.cpp#L272
+    #[patterns("^Transaction (.*) not in mempool.$")]
+    TxNotInMempool(String),
+
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/output_script.cpp#L131
+    #[patterns("^Invalid public key: (.*)\n.$")]
+    InvalidPubKey(String),
+
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/output_script.cpp#L140
+    #[patterns("^Unknown address type '(.)'$")]
+    UnknownAddressType(String),
+
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/output_script.cpp#L142
+    #[patterns("^createmultisig cannot create bech32m multisig addresses$")]
+    CanNotCreateMultisigAddr,
+
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/rawtransaction_util.cpp#L115
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/wallet/rpc/coins.cpp#L582
+    #[patterns("^Invalid Bitcoin address: (.*)")]
+    InvalidAddress(String),
+
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/wallet/rpc/coins.cpp#L31
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/wallet/rpc/signmessage.cpp#L50
+    #[patterns("^Invalid Bitcoin address$", "^Invalid address$")]
+    InvalidAddress2,
+
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/wallet/rpc/wallet.cpp#L555
+    #[patterns("^Invalid private key$")]
+    InvalidPrivKey,
+
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/wallet/rpc/wallet.cpp#L559
+    #[patterns("^Already have this key \(either as an HD seed or as a loose private key\)$")]
+    KeyAlreadyPresent,
+
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/mining.cpp#L226
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/output_script.cpp#L202
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/output_script.cpp#L261
+    // https://github.com/bitcoin/bitcoin/blob/v25.0/src/wallet/rpc/signmessage.cpp#L61
+    Generic(String)
+}
+
+#[derive(Clone, Debug, PartialEq, EnumError)]
 pub enum OutOfMemoryError {
     // https://github.com/bitcoin/bitcoin/blob/v25.0/src/rpc/mining.cpp#L759
     #[patterns("^Out of memory$")]
